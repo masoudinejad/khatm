@@ -37,7 +37,11 @@ def get_portion_count(
     if custom_total is None:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported combination: {content_type}/{portion_type}. Please provide total_portions or contact admin to add this configuration.",
+            detail=(
+                f"Content type '{content_type}' requires total_portions "
+                f"for portion type {portion_type}. Please provide total_portions "
+                f"or contact admin to add this configuration."
+            ),
         )
 
     return custom_total

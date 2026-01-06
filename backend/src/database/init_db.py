@@ -60,7 +60,9 @@ def init_database():
 
     for name, display, desc, portions in default_types:
         c.execute(
-            "INSERT OR IGNORE INTO content_types (name, display_name, description, default_portion_types) VALUES (?, ?, ?, ?)",
+            """INSERT OR IGNORE INTO content_types 
+               (name, display_name, description, default_portion_types) 
+               VALUES (?, ?, ?, ?)""",
             (name, display, desc, portions),
         )
 

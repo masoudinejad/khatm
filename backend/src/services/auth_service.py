@@ -14,7 +14,9 @@ class AuthService:
 
         try:
             conn.execute(
-                "INSERT INTO users (name, email, phone, password_hash, preferred_language) VALUES (?, ?, ?, ?, ?)",
+                """INSERT INTO users 
+                   (name, email, phone, password_hash, preferred_language) 
+                   VALUES (?, ?, ?, ?, ?)""",
                 (
                     user.name,
                     user.email,

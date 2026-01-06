@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
-from src.models.user import UserRegister, UserLogin
-from src.services.auth_service import AuthService
+
 from src.database.connection import get_db
+from src.models.user import UserLogin, UserRegister
+from src.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

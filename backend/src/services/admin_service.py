@@ -15,7 +15,8 @@ class AdminService:
             portion_types_json = json.dumps(content_type.default_portion_types)
 
             conn.execute(
-                """INSERT INTO content_types (name, display_name, description, default_portion_types, created_by) 
+                """INSERT INTO content_types 
+                   (name, display_name, description, default_portion_types, created_by) 
                    VALUES (?, ?, ?, ?, ?)""",
                 (
                     content_type.name,
@@ -47,11 +48,16 @@ class AdminService:
         """List all content types"""
         if include_inactive:
             cursor = conn.execute(
-                "SELECT id, name, display_name, description, default_portion_types, is_active, created_at FROM content_types"
+                """SELECT id, name, display_name, description, 
+                   default_portion_types, is_active, created_at 
+                   FROM content_types"""
             )
         else:
             cursor = conn.execute(
-                "SELECT id, name, display_name, description, default_portion_types, is_active, created_at FROM content_types WHERE is_active = 1"
+                """SELECT id, name, display_name, description, 
+                   default_portion_types, is_active, created_at 
+                   FROM content_types 
+                   WHERE is_active = 1"""
             )
 
         types = []

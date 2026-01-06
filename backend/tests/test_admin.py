@@ -149,7 +149,7 @@ def test_toggle_content_type(client, admin_headers):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["is_active"] == False
+    assert not data["is_active"]
     assert "deactivated" in data["message"]
 
     # Activate again
@@ -157,7 +157,7 @@ def test_toggle_content_type(client, admin_headers):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["is_active"] == True
+    assert data["is_active"]
     assert "activated" in data["message"]
 
 
