@@ -169,3 +169,34 @@ def test_update_nonexistent_content_type(client, admin_headers):
 
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
+
+
+def test_get_all_content_types_include_inactive(client, admin_headers):
+    """Test getting all content types including inactive ones"""
+    response = client.get("/admin/content-types?include_inactive=true", headers=admin_headers)
+    assert response.status_code == 200
+    data = response.json()
+    # The response is wrapped in a dict with 'content_types' key
+    assert "content_types" in data
+    assert isinstance(data["content_types"], list)
+
+
+def test_create_content_type_duplicate_name(client, admin_headers):
+    """Test creating content type with duplicate name"""
+    # First create a content type
+    data = {"name": "test_type", "display_name": "Test Type", "description": "Test description"}
+    response = client.post("/admin/content-types", json=data, headers=admin_headers)
+    assert response.status_code == 200
+
+    # Try to create duplicate
+    response = client.post("/admin/content-types", json=data, headers=admin_headers)
+    assert response.status_code in [400, 409]
+
+
+def test_update_content_type_not_found(client, admin_headers):
+    """Test updating non-existent content type"""
+    data = {"display_name": "Updated Name"}
+    response = client.patch(  # Changed from PUT to PATCH
+        "/admin/content-types/99999", json=data, headers=admin_headers
+    )
+    assert response.status_code == 404
