@@ -1,95 +1,314 @@
-# Khatm Service 📖
+# Collective Recitation Platform 
 
-A simple backend service for organizing collective Quran recitation (Khatm). Allows groups to coordinate reading the entire Quran by dividing it into portions.
+A comprehensive platform for organizing collective recitation of the Holy Quran and Islamic texts, enabling communities to coordinate and track their spiritual practices together.
 
-## Features
+## 🏗️ Project Structure
 
-- User authentication (email or phone number)
-- Create and manage Khatm sessions
-- Support for Juz (30), Hezb (60), or Quarter (240) portions
-- Claim and track completion of portions
-- Progress statistics
+This is a monorepo containing:
+
+- **Backend**: FastAPI REST API (Python 3.12+)
+- **Mobile**: React Native app (iOS & Android)
+- **Web**: Next.js web application
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Python 3.12+
+- Node.js 18+
+- UV (Python package manager)
+- Expo CLI (for mobile development)
+
+### Running the Backend
+
+```bash
+cd backend
+uv sync
+uv run uvicorn src.main:app --reload
+```
+
+API will be available at http://localhost:8000
+
+### Running the Mobile App
+
+```bash
+cd mobile
+npm install
+npm start
+```
+
+Press `i` for iOS simulator or `a` for Android emulator.
+
+### Running the Web App
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Web app will be available at http://localhost:3000
+
+## 📚 Documentation
+
+- [Architecture Overview](./docs/ARCHITECTURE.md)
+- [API Documentation](./docs/API.md)
+- [Deployment Guide](./docs/DEPLOYMENT.md)
+- [Contributing Guidelines](./docs/CONTRIBUTING.md)
+
+Each component also has its own README:
+- [Backend README](./backend/README.md)
+- [Mobile README](./mobile/README.md)
+- [Web README](./web/README.md)
+
+## 🌟 Features
+
+### Backend
+- User authentication (email/phone)
+- Dynamic content type management
+- Progress tracking with history
+- Multi-language support
+- Admin capabilities
+
+### Mobile App
+- Native iOS and Android apps
+- Offline-first architecture
+- Push notifications
+- Real-time progress updates
+- Beautiful, intuitive UI
+
+### Web App
+- Responsive design
+- Real-time dashboard
+- Admin panel
+- Statistics and analytics
 - Multi-language support
 
-## Quick Start
+## 🛠️ Technology Stack
 
+### Backend
+- **Framework**: FastAPI
+- **Database**: SQLite (dev) / PostgreSQL (prod)
+- **Auth**: JWT
+- **Package Manager**: UV
+
+### Apps
+- **Framework**: React Native with Expo
+- **Navigation**: React Navigation
+- **State Management**: React Query
+- **Storage**: AsyncStorage
+- **Language**: TypeScript
+
+### Web
+- **Framework**: Next.js 14+ (App Router)
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI
+- **State Management**: React Query
+- **Language**: TypeScript
+
+## 🌍 Multi-language Support
+
+- Arabic (العربية)
+- Farsi (فارسی)
+- Urdu (اردو)
+- English
+- Turkish (Türkçe)
+- Azerbaijani (Azərbaycan)
+
+## 📱 Supported Platforms
+
+- **Web**: All modern browsers
+- **Mobile**: iOS 13+, Android 8+
+
+## 🔒 Security
+
+- JWT-based authentication
+- Password hashing (SHA-256)
+- Environment-based configuration
+- Secure API endpoints
+
+## 🤝 Contributing
+
+Please read [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+This project is created to facilitate spiritual practices and strengthen community bonds through collective worship.
+
+**Ya Ali (AS) Madad** 🤲
+
+---
+
+For detailed setup and development instructions, see the README in each component directory.
+
+
+## 📦 Shared Types (Optional)
+
+If you want to share types between frontend and backend:
 ```bash
-# Install dependencies
-uv pip install fastapi uvicorn pyjwt
+cd shared
+npm init -y
 
-# Run the server
-uv run python main.py
-```
-
-API will be available at `http://localhost:8000`
-
-## API Documentation
-
-Interactive documentation available at:
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## Basic Usage
-
-### 1. Register a user
-```bash
-POST /auth/register
+# Create TypeScript config
+cat > tsconfig.json << 'EOF'
 {
-  "name": "Ahmed",
-  "email": "ahmed@example.com",
-  "password": "yourpassword"
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "declaration": true,
+    "outDir": "./dist",
+    "strict": true,
+    "esModuleInterop": true
+  },
+  "include": ["types/**/*", "constants/**/*", "utils/**/*"]
 }
-```
+EOF
 
-### 2. Create a Khatm
-```bash
-POST /khatms
-Authorization: Bearer <token>
-{
-  "title": "Ramadan Khatm 2024",
-  "portion_type": "juz"
+# Create types
+mkdir -p types
+
+cat > types/index.ts << 'EOF'
+export interface User {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  preferred_language: string;
 }
-```
 
-### 3. Join and claim portions
-```bash
-POST /khatms/{id}/join
-POST /khatms/{id}/assign
-{
-  "portion_number": 5
+export interface Recitation {
+  id: number;
+  title: string;
+  description?: string;
+  content_type: string;
+  portion_type: string;
+  total_portions: number;
+  status: 'active' | 'completed';
+  language: string;
+  creator_id: number;
+  created_at: string;
 }
+
+export interface Portion {
+  id: number;
+  recitation_id: number;
+  portion_number: number;
+  user_id?: number;
+  progress_percentage: number;
+  is_completed: boolean;
+  assigned_at?: string;
+  completed_at?: string;
+}
+
+export interface ContentType {
+  id: number;
+  name: string;
+  display_name: string;
+  description?: string;
+  default_portion_types: Record<string, number>;
+  is_active: boolean;
+}
+EOF
 ```
 
-### 4. Mark as complete
+## 🐳 Docker Compose (Optional)
+
+For local development with all services:
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://user:password@db:5432/recitations
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+    command: uv run uvicorn src.main:app --host 0.0.0.0 --reload
+
+  web:
+    build: ./web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+    command: npm run dev
+
+  db:
+    image: postgres:16
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=recitations
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
+```
+
+Run everything with:
 ```bash
-PUT /khatms/{id}/portions/{number}/complete
+docker-compose up
 ```
 
-## Phone Number Format
+## 📊 Development Workflow
 
-Use international format: `+491234567890` or `+49 123 456 7890`
+### 1. Start Backend
+```bash
+cd backend && uv run uvicorn src.main:app --reload
+```
 
-## Production Setup
+### 2. Start Web
+```bash
+cd web && npm run dev
+```
 
-1. Set a secure SECRET_KEY:
-   ```bash
-   export SECRET_KEY="your-secure-random-key"
-   ```
+### 3. Start Mobile
+```bash
+cd mobile && npm start
+```
 
-2. Consider using PostgreSQL instead of SQLite
+### 4. Access Services
+- Backend API: http://localhost:8000
+- Backend Docs: http://localhost:8000/docs
+- Web App: http://localhost:3000
+- Mobile: Expo Dev Client
 
-3. Deploy with Gunicorn:
-   ```bash
-   uv pip install gunicorn
-   gunicorn -w 4 -k uvicorn.workers.UvicornWorker main:app
-   ```
+## 🔄 CI/CD
 
-## Tech Stack
+GitHub Actions workflows are set up for each component:
+- `backend-ci.yml`: Runs tests and linting for backend
+- `mobile-ci.yml`: Builds mobile app
+- `web-ci.yml`: Builds and tests web app
 
-- FastAPI (Python)
-- SQLite database
-- JWT authentication
+## 📈 Future Enhancements
 
-## License
+- [ ] GraphQL API option
+- [ ] Real-time updates with WebSockets
+- [ ] Social features (friends, groups)
+- [ ] Gamification (achievements, leaderboards)
+- [ ] Audio recitation playback
+- [ ] Offline mode for mobile
+- [ ] Admin dashboard in web app
+- [ ] Email/SMS notifications
+- [ ] Analytics and reporting
 
-MIT
+---
+
+Each directory (`backend/`, `mobile/`, `web/`) will have its own detailed README with specific setup instructions.
