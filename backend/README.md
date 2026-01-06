@@ -1,19 +1,55 @@
 # Backend API
 
-Backend service for organizing collective recitation of Quran and Islamic texts.
+## Development
 
-## Setup
+### Setup
 ```bash
 # Install dependencies
 uv sync
 
-# Create environment file
-cp .env.example .env
-
-# Run the server
-uv run uvicorn src.main:app --reload
+# Install dev dependencies
+uv sync --all-extras
 ```
 
-## API Documentation
+### Running Tests
+```bash
+# Run all tests
+uv run pytest
 
-Visit http://localhost:8000/docs for interactive API documentation.
+# Run with coverage
+uv run pytest --cov
+
+# Run specific test file
+uv run pytest tests/test_auth.py
+
+# Run specific test
+uv run pytest tests/test_auth.py::test_register_with_email
+
+# Run tests in parallel (faster)
+uv run pytest -n auto
+
+# Run tests and generate HTML coverage report
+uv run pytest --cov --cov-report=html
+# Open htmlcov/index.html in browser
+```
+
+### Code Quality
+```bash
+# Lint code
+uv run ruff check .
+
+# Format code
+uv run ruff format .
+
+# Fix linting issues automatically
+uv run ruff check --fix .
+```
+
+### Running the Server
+```bash
+# Development mode
+uv run uvicorn src.main:app --reload
+
+# Production mode
+uv run uvicorn src.main:app --host 0.0.0.0 --port 8000
+```

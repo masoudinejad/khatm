@@ -1,4 +1,9 @@
-# Collective Recitation Platform 
+# Collective Recitation Platform
+
+[![Backend CI](https://github.com/yourusername/your-repo/workflows/Backend%20CI/badge.svg)](https://github.com/yourusername/your-repo/actions)
+[![codecov](https://codecov.io/gh/yourusername/your-repo/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/your-repo)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A comprehensive platform for organizing collective recitation of the Holy Quran and Islamic texts, enabling communities to coordinate and track their spiritual practices together.
 
@@ -311,4 +316,4 @@ GitHub Actions workflows are set up for each component:
 
 ---
 
-Each directory (`backend/`, `mobile/`, `web/`) will have its own detailed README with specific setup instructions.
+Each directory (`backend/`, `apps/`, `web/`) will have its own detailed README with specific setup instructions.
