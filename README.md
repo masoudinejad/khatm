@@ -1,7 +1,7 @@
 # Collective Recitation Platform
 
-![Backend CI](https://github.com/yourusername/your-repo/workflows/Backend%20CI/badge.svg)
-[![codecov](https://codecov.io/gh/yourusername/your-repo/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/your-repo)
+[![Backend CI](https://github.com/masoudinejad/khatm/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/masoudinejad/khatm/actions/workflows/backend-ci.yml)
+[![codecov](https://codecov.io/gh/masoudinejad/khatm/branch/main/graph/badge.svg)](https://codecov.io/gh/masoudinejad/khatm)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
 A comprehensive platform for organizing collective recitation of the Holy Quran and Islamic texts, enabling communities to coordinate and track their spiritual practices together.
@@ -11,7 +11,7 @@ A comprehensive platform for organizing collective recitation of the Holy Quran 
 This is a monorepo containing:
 
 - **Backend**: FastAPI REST API (Python 3.12+)
-- **Mobile**: React Native app (iOS & Android)
+- **Apps**: React Native app (iOS & Android)
 - **Web**: Next.js web application
 
 ## 🚀 Quick Start
