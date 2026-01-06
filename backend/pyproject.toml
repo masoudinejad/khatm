@@ -5,6 +5,7 @@ description = "A simple backend service for organizing collective khatm recitati
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "email-validator>=2.2.0",
     "fastapi>=0.128.0",
     "pydantic-settings>=2.12.0",
     "pyjwt>=2.10.1",
@@ -63,9 +64,4 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
-]
-
-[dependency-groups]
-dev = [
-    "pytest-cov>=7.0.0",
 ]
