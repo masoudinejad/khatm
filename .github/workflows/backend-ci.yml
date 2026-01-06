@@ -43,12 +43,11 @@ jobs:
     - name: Run tests with coverage
       run: uv run pytest --cov=src --cov-report=xml --cov-report=term
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
       with:
-        file: ./backend/coverage.xml
+        token: ${{ secrets.acc4d9f2-df78-4cef-b51a-1f1505a0e982 }}
+        files: ./backend/coverage.xml
         flags: backend
         name: backend-coverage
         fail_ci_if_error: false
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
