@@ -65,8 +65,3 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "if TYPE_CHECKING:",
 ]
-
-[dependency-groups]
-dev = [
-    "pytest-cov>=7.0.0",
-]
