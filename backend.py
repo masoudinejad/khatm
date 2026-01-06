@@ -3,10 +3,10 @@ Simple and lightweight Quran Khatm API Backend
 FastAPI + SQLite for maximum simplicity
 """
 
-from fastapi import FastAPI, HTTPException, Depends, status
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, field_validator
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timedelta
 import sqlite3
 import hashlib
@@ -43,7 +43,9 @@ class UserRegister(BaseModel):
 class KhatmCreate(BaseModel):
     title: str
     description: Optional[str] = None
-    portion_type: str = "juz"  # juz, hezb, or quarter
+    content_type: str = "quran"  # quran, hadith, dua, custom
+    portion_type: str = "juz"  # juz, hezb, quarter, chapter, page, custom
+    total_portions: Optional[int] = None  # For custom content types
     deadline: Optional[str] = None  # ISO format date
     language: str = "en"
 
@@ -73,7 +75,9 @@ def init_db():
         title TEXT NOT NULL,
         description TEXT,
         creator_id INTEGER NOT NULL,
+        content_type TEXT DEFAULT 'quran',
         portion_type TEXT NOT NULL,
+        total_portions INTEGER NOT NULL,
         status TEXT DEFAULT 'active',
         language TEXT DEFAULT 'en',
         deadline TIMESTAMP,
@@ -134,10 +138,42 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) 
     except:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-def get_portion_count(portion_type: str) -> int:
-    """Returns total number of portions based on type"""
-    counts = {"juz": 30, "hezb": 60, "quarter": 240}
-    return counts.get(portion_type, 30)
+def get_portion_count(content_type: str, portion_type: str, custom_total: Optional[int] = None) -> int:
+    """Returns total number of portions based on content and portion type"""
+    
+    # For custom content, use the provided total
+    if content_type == "custom" or custom_total is not None:
+        if custom_total is None:
+            raise HTTPException(status_code=400, detail="total_portions required for custom content")
+        return custom_total
+    
+    # Quran portions
+    if content_type == "quran":
+        quran_counts = {"juz": 30, "hezb": 60, "quarter": 240}
+        if portion_type in quran_counts:
+            return quran_counts[portion_type]
+    
+    # Sahih Bukhari (most common hadith book)
+    if content_type == "hadith_bukhari":
+        if portion_type == "book": return 97  # 97 books in Bukhari
+        if portion_type == "chapter": return 3450  # approximate chapters
+    
+    # Sahih Muslim
+    if content_type == "hadith_muslim":
+        if portion_type == "book": return 56  # 56 books in Muslim
+    
+    # Riyadh as-Salihin
+    if content_type == "hadith_riyadh":
+        if portion_type == "chapter": return 372  # 372 chapters
+    
+    # If no match found, require custom total
+    if custom_total is None:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Unsupported combination: {content_type}/{portion_type}. Please provide total_portions."
+        )
+    
+    return custom_total
 
 # ============= API Endpoints =============
 
@@ -213,10 +249,15 @@ async def login(credentials: UserLogin):
 async def create_khatm(khatm: KhatmCreate, user_id: int = Depends(verify_token)):
     conn = get_db()
     
+    # Determine total portions
+    total_portions = get_portion_count(khatm.content_type, khatm.portion_type, khatm.total_portions)
+    
     # Create khatm
     cursor = conn.execute(
-        "INSERT INTO khatms (title, description, creator_id, portion_type, language, deadline) VALUES (?, ?, ?, ?, ?, ?)",
-        (khatm.title, khatm.description, user_id, khatm.portion_type, khatm.language, khatm.deadline)
+        """INSERT INTO khatms (title, description, creator_id, content_type, portion_type, 
+           total_portions, language, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (khatm.title, khatm.description, user_id, khatm.content_type, khatm.portion_type, 
+         total_portions, khatm.language, khatm.deadline)
     )
     khatm_id = cursor.lastrowid
     
@@ -227,8 +268,7 @@ async def create_khatm(khatm: KhatmCreate, user_id: int = Depends(verify_token))
     )
     
     # Initialize all portions
-    portion_count = get_portion_count(khatm.portion_type)
-    for i in range(1, portion_count + 1):
+    for i in range(1, total_portions + 1):
         conn.execute(
             "INSERT INTO portions (khatm_id, portion_number) VALUES (?, ?)",
             (khatm_id, i)
@@ -237,7 +277,7 @@ async def create_khatm(khatm: KhatmCreate, user_id: int = Depends(verify_token))
     conn.commit()
     conn.close()
     
-    return {"khatm_id": khatm_id, "message": "Khatm created successfully"}
+    return {"khatm_id": khatm_id, "total_portions": total_portions, "message": "Khatm created successfully"}
 
 @app.get("/khatms")
 async def list_khatms(user_id: int = Depends(verify_token)):
