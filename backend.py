@@ -52,6 +52,10 @@ class KhatmCreate(BaseModel):
 class PortionAssign(BaseModel):
     portion_number: int
 
+class PortionProgress(BaseModel):
+    progress_percentage: int  # 0-100
+    notes: Optional[str] = None  # Optional notes about progress
+
 # ============= Database Setup =============
 
 def init_db():
@@ -102,12 +106,26 @@ def init_db():
         khatm_id INTEGER NOT NULL,
         user_id INTEGER,
         portion_number INTEGER NOT NULL,
+        progress_percentage INTEGER DEFAULT 0,
         is_completed BOOLEAN DEFAULT 0,
         assigned_at TIMESTAMP,
         completed_at TIMESTAMP,
+        last_progress_update TIMESTAMP,
         FOREIGN KEY (khatm_id) REFERENCES khatms(id),
         FOREIGN KEY (user_id) REFERENCES users(id),
         UNIQUE(khatm_id, portion_number)
+    )''')
+    
+    # Progress notes table (for detailed tracking)
+    c.execute('''CREATE TABLE IF NOT EXISTS progress_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        portion_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        progress_percentage INTEGER NOT NULL,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (portion_id) REFERENCES portions(id),
+        FOREIGN KEY (user_id) REFERENCES users(id)
     )''')
     
     conn.commit()
@@ -316,10 +334,11 @@ async def get_khatm(khatm_id: int, user_id: int = Depends(verify_token)):
         conn.close()
         raise HTTPException(status_code=404, detail="Khatm not found")
     
-    # Get portions status
+    # Get portions status with progress
     cursor = conn.execute("""
         SELECT portion_number, user_id, u.name as user_name, 
-               is_completed, assigned_at, completed_at
+               progress_percentage, is_completed, assigned_at, 
+               completed_at, last_progress_update
         FROM portions p
         LEFT JOIN users u ON p.user_id = u.id
         WHERE p.khatm_id = ?
@@ -374,18 +393,47 @@ async def assign_portion(khatm_id: int, portion: PortionAssign, user_id: int = D
     finally:
         conn.close()
 
-@app.put("/khatms/{khatm_id}/portions/{portion_number}/complete")
-async def complete_portion(khatm_id: int, portion_number: int, user_id: int = Depends(verify_token)):
+@app.put("/khatms/{khatm_id}/portions/{portion_number}/progress")
+async def update_portion_progress(khatm_id: int, portion_number: int, progress: PortionProgress, user_id: int = Depends(verify_token)):
     conn = get_db()
     
-    result = conn.execute(
-        "UPDATE portions SET is_completed = 1, completed_at = CURRENT_TIMESTAMP WHERE khatm_id = ? AND portion_number = ? AND user_id = ?",
+    # Validate progress percentage
+    if not 0 <= progress.progress_percentage <= 100:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Progress must be between 0 and 100")
+    
+    # Get portion_id
+    cursor = conn.execute(
+        "SELECT id FROM portions WHERE khatm_id = ? AND portion_number = ? AND user_id = ?",
         (khatm_id, portion_number, user_id)
     )
+    portion = cursor.fetchone()
     
-    if result.rowcount == 0:
+    if not portion:
         conn.close()
         raise HTTPException(status_code=400, detail="Portion not found or not assigned to you")
+    
+    portion_id = portion[0]
+    
+    # Automatically mark as completed if progress is 100%
+    is_completed = 1 if progress.progress_percentage == 100 else 0
+    completed_at = "CURRENT_TIMESTAMP" if is_completed else "NULL"
+    
+    # Update portion progress
+    conn.execute(f"""
+        UPDATE portions 
+        SET progress_percentage = ?, 
+            is_completed = ?,
+            completed_at = {completed_at},
+            last_progress_update = CURRENT_TIMESTAMP
+        WHERE id = ?
+    """, (progress.progress_percentage, is_completed, portion_id))
+    
+    # Log progress in history
+    conn.execute(
+        "INSERT INTO progress_notes (portion_id, user_id, progress_percentage, notes) VALUES (?, ?, ?, ?)",
+        (portion_id, user_id, progress.progress_percentage, progress.notes)
+    )
     
     conn.commit()
     
@@ -401,7 +449,45 @@ async def complete_portion(khatm_id: int, portion_number: int, user_id: int = De
         conn.commit()
     
     conn.close()
-    return {"message": "Portion marked as complete"}
+    return {"message": "Progress updated successfully", "is_completed": bool(is_completed)}
+
+@app.put("/khatms/{khatm_id}/portions/{portion_number}/complete")
+async def complete_portion(khatm_id: int, portion_number: int, user_id: int = Depends(verify_token)):
+    """Shortcut endpoint to mark portion as 100% complete"""
+    progress = PortionProgress(progress_percentage=100, notes="Marked as complete")
+    return await update_portion_progress(khatm_id, portion_number, progress, user_id)
+
+@app.get("/khatms/{khatm_id}/portions/{portion_number}/history")
+async def get_portion_history(khatm_id: int, portion_number: int, user_id: int = Depends(verify_token)):
+    """Get the progress history for a specific portion"""
+    conn = get_db()
+    
+    # Get portion_id
+    cursor = conn.execute(
+        "SELECT id FROM portions WHERE khatm_id = ? AND portion_number = ?",
+        (khatm_id, portion_number)
+    )
+    portion = cursor.fetchone()
+    
+    if not portion:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Portion not found")
+    
+    portion_id = portion[0]
+    
+    # Get progress history
+    cursor = conn.execute("""
+        SELECT pn.progress_percentage, pn.notes, pn.created_at, u.name as user_name
+        FROM progress_notes pn
+        JOIN users u ON pn.user_id = u.id
+        WHERE pn.portion_id = ?
+        ORDER BY pn.created_at DESC
+    """, (portion_id,))
+    
+    history = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    return {"portion_number": portion_number, "history": history}
 
 @app.get("/khatms/{khatm_id}/stats")
 async def get_khatm_stats(khatm_id: int, user_id: int = Depends(verify_token)):
@@ -411,13 +497,15 @@ async def get_khatm_stats(khatm_id: int, user_id: int = Depends(verify_token)):
         SELECT 
             COUNT(*) as total_portions,
             SUM(CASE WHEN is_completed = 1 THEN 1 ELSE 0 END) as completed_portions,
-            COUNT(DISTINCT user_id) as active_participants
+            COUNT(DISTINCT user_id) as active_participants,
+            AVG(progress_percentage) as average_progress
         FROM portions
         WHERE khatm_id = ?
     """, (khatm_id,))
     
     stats = dict(cursor.fetchone())
     stats['completion_percentage'] = (stats['completed_portions'] / stats['total_portions'] * 100) if stats['total_portions'] > 0 else 0
+    stats['average_progress'] = round(stats['average_progress'] or 0, 2)
     
     conn.close()
     return stats
@@ -430,12 +518,14 @@ async def get_user_stats(user_id: int = Depends(verify_token)):
         SELECT 
             COUNT(DISTINCT khatm_id) as khatms_joined,
             COUNT(*) as portions_assigned,
-            SUM(is_completed) as portions_completed
+            SUM(is_completed) as portions_completed,
+            AVG(progress_percentage) as average_progress
         FROM portions
         WHERE user_id = ?
     """, (user_id,))
     
     stats = dict(cursor.fetchone())
+    stats['average_progress'] = round(stats['average_progress'] or 0, 2)
     conn.close()
     return stats
 
